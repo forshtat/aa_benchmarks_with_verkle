@@ -1,8 +1,5 @@
 import { before } from 'mocha'
-import { expect } from 'chai'
-import { loadFixture, } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 
-import { deployERC4337v06Fixture } from './utils/ERC4337v06Fixture'
 import {
   BundleDescription,
   CreationStrategy,
@@ -11,11 +8,12 @@ import {
   UserOpDescription,
   WalletImplementation
 } from './utils/Types'
+import { Environment } from './utils/Environment'
 
 const simpleAccountV06Baseline: UserOpDescription = {
   walletImplementation: WalletImplementation.simpleAccount_v6,
   paymasterType: PaymasterType.noPaymaster,
-  gasPaymentStrategy: GasPaymentStrategy.accountDeposit,
+  gasPaymentStrategy: GasPaymentStrategy.accountBalance,
   creationStrategy: CreationStrategy.usePreCreatedAccount,
   userOpAction: UserOpAction.valueTransfer
 }
@@ -33,15 +31,16 @@ const bundlesToRun: BundleDescription[] = [
 
 describe('Creating Test Bundles', function () {
   describe('ERC-4337 v0.6', function () {
-    let entryPointV06: any
+    let environment: Environment
 
-    before('Should set the right unlockTime', async function () {
-      ({ entryPointV06 } = await loadFixture(deployERC4337v06Fixture))
+    before(async function () {
+      environment = new Environment()
+      await environment.init()
     })
 
     for (const bundle of bundlesToRun) {
       it(`bundle: ${bundle.name} size: ${bundle.userOps.length}`, async function () {
-        expect(entryPointV06).to.equal('whatever')
+        await environment.handleOps(bundle.userOps)
       })
     }
   })
