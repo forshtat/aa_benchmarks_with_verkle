@@ -1,0 +1,4 @@
+[submodule "wallets/zerodev-kernel"]
+	path = wallets/zerodev-kernel
+	url = git@github.com:forshtat/zerodev-kernel.git
+	branch = hardhat-deploy-script-for-benchmark
