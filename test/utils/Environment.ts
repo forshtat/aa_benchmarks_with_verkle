@@ -1,13 +1,21 @@
 import * as crypto from 'node:crypto'
-import { AddressLike, Signer, resolveAddress } from 'ethers'
-import { UserOperationStruct } from '@account-abstraction/contracts'
+import { Signer, resolveAddress, AbiCoder, ContractTransactionResponse, ContractTransactionReceipt } from 'ethers'
 import { ethers } from 'hardhat'
 
 import { ResultsWriter } from './ResultsWriter'
 import { GasPaymentStrategy, UserOpAction, UserOpDescription, WalletImplementation } from './Types'
 
-import { ERC20__factory, SimpleAccount__factory, ERC20, EntryPoint, EntryPoint__factory } from '../../typechain-types'
+import {
+  ERC20__factory,
+  SimpleAccount__factory,
+  ERC20,
+  EntryPoint,
+  EntryPoint__factory,
+  SimpleAccountFactory, SimpleAccountFactory__factory
+} from '../../typechain-types'
+import { UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
 import { getUserOpSignature } from './ERC4337'
+import assert from 'node:assert'
 
 export function randomAddress (): string {
   return `0x${crypto.randomBytes(20).toString('hex')}`
@@ -17,32 +25,46 @@ const PRIORITY_FEE = 1000000000n
 
 export class Environment {
   signer!: Signer
-  resultsWriter!: ResultsWriter
+  // resultsWriter!: ResultsWriter
   beneficiary!: string
   chainId!: bigint
+  globalFactorySalt: number = 0
 
   entryPointV06!: EntryPoint
   entryPointV06Address!: string
   erc20Token!: ERC20
 
+  simpleAccountFactoryV06!: SimpleAccountFactory
+
   async init () {
     this.beneficiary = randomAddress()
-    this.resultsWriter = new ResultsWriter()
     this.chainId = (await ethers.provider.getNetwork()).chainId
     this.signer = await ethers.provider.getSigner()
     this.erc20Token = await new ERC20__factory(this.signer).deploy('Test Token', 'TEST')
     this.entryPointV06 = await new EntryPoint__factory(this.signer).deploy()
     this.entryPointV06Address = await resolveAddress(this.entryPointV06.target)
+    await this.initAccountFactories()
   }
 
-  async handleOps (descriptions: UserOpDescription[]): Promise<void> {
+  async initAccountFactories (): Promise<void> {
+    this.simpleAccountFactoryV06 = await new SimpleAccountFactory__factory(this.signer).deploy(this.entryPointV06Address)
+  }
+
+  async handleOps (descriptions: UserOpDescription[]): Promise<ContractTransactionReceipt> {
     const userOps: UserOperationStruct[] = []
     for (const description of descriptions) {
       const userOp = await this.createUserOp(description)
       userOps.push(userOp)
     }
-    // @ts-ignore - different hardhat versions, slightly incompatible types
-    await this.entryPointV06.handleOps(userOps, this.beneficiary)
+    const response = await this.entryPointV06.handleOps(userOps, this.beneficiary)
+    const receipt = await response.wait()
+    assert(receipt != null, 'receipt is null')
+    await this.validateAllOpsSucceeded(receipt)
+    return receipt
+  }
+
+  async validateAllOpsSucceeded (receipt: ContractTransactionReceipt){
+
   }
 
   async createUserOp (description: UserOpDescription): Promise<UserOperationStruct> {
@@ -100,10 +122,14 @@ export class Environment {
   async getSender (description: UserOpDescription): Promise<string> {
     switch (description.walletImplementation) {
       case WalletImplementation.simpleAccount_v6:
-        // TODO: use deployer factory
-        const wallet = await new SimpleAccount__factory(this.signer).deploy(this.entryPointV06.target)
-        await wallet.initialize(this.signer.getAddress())
-        return resolveAddress(wallet.target)
+        const accountOwner = await this.signer.getAddress()
+        await this.simpleAccountFactoryV06.createAccount(accountOwner, this.globalFactorySalt)
+        const getAddress = this.simpleAccountFactoryV06.interface.encodeFunctionData(
+          'getAddress', [accountOwner, this.globalFactorySalt]
+        )
+        this.globalFactorySalt++
+        const ret = await ethers.provider.call({ to: this.simpleAccountFactoryV06.target, data: getAddress })
+        return new AbiCoder().decode(['address'], ret)[0]
       default:
         throw new Error('unsupported wallet implementation')
     }

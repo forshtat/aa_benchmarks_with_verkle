@@ -9,6 +9,8 @@ import {
   WalletImplementation
 } from './utils/Types'
 import { Environment } from './utils/Environment'
+import { ResultsWriter } from './utils/ResultsWriter'
+import assert from 'node:assert'
 
 const simpleAccountV06Baseline: UserOpDescription = {
   walletImplementation: WalletImplementation.simpleAccount_v6,
@@ -30,18 +32,23 @@ const bundlesToRun: BundleDescription[] = [
 ]
 
 describe('Creating Test Bundles', function () {
-  describe('ERC-4337 v0.6', function () {
-    let environment: Environment
+  let environment: Environment
+  let resultsWriter: ResultsWriter
 
-    before(async function () {
-      environment = new Environment()
-      await environment.init()
+  before(async function () {
+    resultsWriter = new ResultsWriter()
+    environment = new Environment()
+    await environment.init()
+  })
+
+  for (const bundle of bundlesToRun) {
+    it(`bundle: ${bundle.name} size: ${bundle.userOps.length}`, async function () {
+      const res = await environment.handleOps(bundle.userOps)
+      resultsWriter.addResult(bundle.name, res.hash, bundle.userOps.length, parseInt(receipt.gasUsed.toString()))
     })
+  }
 
-    for (const bundle of bundlesToRun) {
-      it(`bundle: ${bundle.name} size: ${bundle.userOps.length}`, async function () {
-        await environment.handleOps(bundle.userOps)
-      })
-    }
+  after(async function () {
+    resultsWriter.writeResults()
   })
 })
