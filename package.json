@@ -4,14 +4,20 @@
   "main": "index.js",
   "license": "MIT",
   "private": "true",
-  "workspaces": [
-    "wallets/zerodev-kernel"
-  ],
+  "workspaces": {
+    "packages": [
+      "wallets/zerodev-kernel"
+    ],
+    "nohoist": [
+      "**"
+    ]
+  },
   "scripts": {
     "test": "hardhat test",
     "lint": "eslint --fix .",
     "tsc": "tsc",
-    "compile": "hardhat compile"
+    "compile": "hardhat compile",
+    "deploy-zerodev-factory": "cd wallets/zerodev-kernel && yarn deploy"
   },
   "devDependencies": {
     "@account-abstraction/contracts": "^0.6.0",

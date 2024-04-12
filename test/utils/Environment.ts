@@ -3,7 +3,13 @@ import assert from 'node:assert'
 import { type Signer, resolveAddress, AbiCoder, type ContractTransactionReceipt, type EventLog } from 'ethers'
 import { ethers } from 'hardhat'
 
-import { GasPaymentStrategy, UserOpAction, type UserOpDescription, WalletImplementation } from './Types'
+import {
+  CreationStrategy,
+  GasPaymentStrategy,
+  UserOpAction,
+  type UserOpDescription,
+  WalletImplementation
+} from './Types'
 import { getUserOpSignature } from './ERC4337'
 
 import {
@@ -34,6 +40,7 @@ export class Environment {
   erc20Token!: ERC20
 
   simpleAccountFactoryV06!: SimpleAccountFactory
+  zerodevKernelAccountFactoryV23!: SimpleAccountFactory
 
   async init (): Promise<void> {
     this.beneficiary = randomAddress()
@@ -134,6 +141,14 @@ export class Environment {
 
   async getSender (description: UserOpDescription): Promise<string> {
     const accountOwner = await this.signer.getAddress()
+
+    switch (description.creationStrategy) {
+      case CreationStrategy.usePreCreatedAccount:
+        break
+      default:
+        throw new Error('unsupported wallet creation strategy')
+    }
+
     switch (description.walletImplementation) {
       case WalletImplementation.simpleAccount_v6: {
         await this.simpleAccountFactoryV06.createAccount(accountOwner, this.globalFactorySalt)
@@ -143,6 +158,9 @@ export class Environment {
         this.globalFactorySalt++
         const ret = await ethers.provider.call({ to: this.simpleAccountFactoryV06.target, data: getAddress })
         return new AbiCoder().decode(['address'], ret)[0]
+      }
+      case WalletImplementation.zerodevKernelLite_v2_3: {
+
       }
       default:
         throw new Error('unsupported wallet implementation')

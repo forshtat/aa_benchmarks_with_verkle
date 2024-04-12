@@ -10,14 +10,7 @@ import {
 } from './utils/Types'
 import { Environment } from './utils/Environment'
 import { ResultsWriter } from './utils/ResultsWriter'
-
-const simpleAccountV06Baseline: UserOpDescription = {
-  walletImplementation: WalletImplementation.simpleAccount_v6,
-  paymasterType: PaymasterType.noPaymaster,
-  gasPaymentStrategy: GasPaymentStrategy.accountBalance,
-  creationStrategy: CreationStrategy.usePreCreatedAccount,
-  userOpAction: UserOpAction.valueTransfer
-}
+import { kernelLiteV23Baseline, simpleAccountV06Baseline } from './Cases'
 
 const bundlesToRun: BundleDescription[] = [
   {
@@ -27,6 +20,10 @@ const bundlesToRun: BundleDescription[] = [
   {
     name: 'double-simple-account-baseline',
     userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline]
+  },
+  {
+    name: 'single-zerodev-kernel-lite-baseline',
+    userOps: [kernelLiteV23Baseline]
   }
 ]
 
