@@ -44,7 +44,7 @@ describe('Creating Test Bundles', function () {
   for (const bundle of bundlesToRun) {
     it(`bundle: ${bundle.name} size: ${bundle.userOps.length}`, async function () {
       const res = await environment.handleOps(bundle.userOps)
-      resultsWriter.addResult(bundle.name, res.hash, bundle.userOps.length, parseInt(receipt.gasUsed.toString()))
+      resultsWriter.addResult(bundle.name, res.hash, bundle.userOps.length, parseInt(res.gasUsed.toString()))
     })
   }
 

@@ -1,9 +1,10 @@
 import * as crypto from 'node:crypto'
-import { Signer, resolveAddress, AbiCoder, ContractTransactionResponse, ContractTransactionReceipt } from 'ethers'
+import assert from 'node:assert'
+import { Signer, resolveAddress, AbiCoder, ContractTransactionReceipt, EventLog } from 'ethers'
 import { ethers } from 'hardhat'
 
-import { ResultsWriter } from './ResultsWriter'
 import { GasPaymentStrategy, UserOpAction, UserOpDescription, WalletImplementation } from './Types'
+import { getUserOpSignature } from './ERC4337'
 
 import {
   ERC20__factory,
@@ -14,8 +15,6 @@ import {
   SimpleAccountFactory, SimpleAccountFactory__factory
 } from '../../typechain-types'
 import { UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
-import { getUserOpSignature } from './ERC4337'
-import assert from 'node:assert'
 
 export function randomAddress (): string {
   return `0x${crypto.randomBytes(20).toString('hex')}`
@@ -63,7 +62,13 @@ export class Environment {
     return receipt
   }
 
-  async validateAllOpsSucceeded (receipt: ContractTransactionReceipt){
+  async validateAllOpsSucceeded (receipt: ContractTransactionReceipt) {
+    for (const log of receipt.logs) {
+      const eventLog = log as EventLog
+      if (eventLog.eventName == 'UserOperationEvent') {
+        assert(eventLog.args['success'], 'user operation success status is "false"')
+      }
+    }
 
   }
 
@@ -96,14 +101,20 @@ export class Environment {
   }
 
   async getCalldata (description: UserOpDescription): Promise<string> {
+    let innerCallTarget: string
     let innerCallData: string
+    let innerCallValue: string
     switch (description.userOpAction) {
       case UserOpAction.valueTransfer:
+        innerCallTarget = randomAddress()
         innerCallData = '0x'
+        innerCallValue = '100000'
         break
       case UserOpAction.erc20Transfer:
         const randomDestination = randomAddress()
+        innerCallTarget = await resolveAddress(this.erc20Token.target)
         innerCallData = this.erc20Token.interface.encodeFunctionData('transfer', [randomDestination, 1000])
+        innerCallValue = '0'
         break
       default:
         throw new Error('unsupported user op action')
@@ -111,7 +122,9 @@ export class Environment {
     let callData
     switch (description.walletImplementation) {
       case WalletImplementation.simpleAccount_v6:
-        callData = SimpleAccount__factory.createInterface().encodeFunctionData('execute', [this.erc20Token.target, 0, innerCallData])
+        callData = SimpleAccount__factory.createInterface().encodeFunctionData(
+          'execute', [innerCallTarget, innerCallValue, innerCallData]
+        )
         break
       default:
         throw new Error('unsupported wallet implementation')
