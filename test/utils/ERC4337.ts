@@ -1,7 +1,7 @@
-import { AbiCoder, getBytes, keccak256, Signer } from 'ethers'
+import { AbiCoder, getBytes, keccak256, type Signer } from 'ethers'
 
 import {
-  UserOperationStruct as UserOperation
+  type UserOperationStruct as UserOperation
 } from '../../typechain-types/@account-abstraction/contracts/core/BaseAccount'
 
 const defaultAbiCoder = new AbiCoder()

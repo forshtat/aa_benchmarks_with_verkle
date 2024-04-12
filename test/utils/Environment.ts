@@ -1,20 +1,20 @@
 import * as crypto from 'node:crypto'
 import assert from 'node:assert'
-import { Signer, resolveAddress, AbiCoder, ContractTransactionReceipt, EventLog } from 'ethers'
+import { type Signer, resolveAddress, AbiCoder, type ContractTransactionReceipt, type EventLog } from 'ethers'
 import { ethers } from 'hardhat'
 
-import { GasPaymentStrategy, UserOpAction, UserOpDescription, WalletImplementation } from './Types'
+import { GasPaymentStrategy, UserOpAction, type UserOpDescription, WalletImplementation } from './Types'
 import { getUserOpSignature } from './ERC4337'
 
 import {
   ERC20__factory,
   SimpleAccount__factory,
-  ERC20,
-  EntryPoint,
+  type ERC20,
+  type EntryPoint,
   EntryPoint__factory,
-  SimpleAccountFactory, SimpleAccountFactory__factory
+  type SimpleAccountFactory, SimpleAccountFactory__factory
 } from '../../typechain-types'
-import { UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
+import { type UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
 
 export function randomAddress (): string {
   return `0x${crypto.randomBytes(20).toString('hex')}`
@@ -35,7 +35,7 @@ export class Environment {
 
   simpleAccountFactoryV06!: SimpleAccountFactory
 
-  async init () {
+  async init (): Promise<void> {
     this.beneficiary = randomAddress()
     this.chainId = (await ethers.provider.getNetwork()).chainId
     this.signer = await ethers.provider.getSigner()
@@ -62,14 +62,13 @@ export class Environment {
     return receipt
   }
 
-  async validateAllOpsSucceeded (receipt: ContractTransactionReceipt) {
+  async validateAllOpsSucceeded (receipt: ContractTransactionReceipt): Promise<void> {
     for (const log of receipt.logs) {
       const eventLog = log as EventLog
-      if (eventLog.eventName == 'UserOperationEvent') {
-        assert(eventLog.args['success'], 'user operation success status is "false"')
+      if (eventLog.eventName === 'UserOperationEvent') {
+        assert(eventLog.args.success, 'user operation success status is "false"')
       }
     }
-
   }
 
   async createUserOp (description: UserOpDescription): Promise<UserOperationStruct> {
@@ -104,14 +103,15 @@ export class Environment {
     let innerCallTarget: string
     let innerCallData: string
     let innerCallValue: string
+    const randomDestination = randomAddress()
+
     switch (description.userOpAction) {
       case UserOpAction.valueTransfer:
-        innerCallTarget = randomAddress()
+        innerCallTarget = randomDestination
         innerCallData = '0x'
         innerCallValue = '100000'
         break
       case UserOpAction.erc20Transfer:
-        const randomDestination = randomAddress()
         innerCallTarget = await resolveAddress(this.erc20Token.target)
         innerCallData = this.erc20Token.interface.encodeFunctionData('transfer', [randomDestination, 1000])
         innerCallValue = '0'
@@ -133,9 +133,9 @@ export class Environment {
   }
 
   async getSender (description: UserOpDescription): Promise<string> {
+    const accountOwner = await this.signer.getAddress()
     switch (description.walletImplementation) {
-      case WalletImplementation.simpleAccount_v6:
-        const accountOwner = await this.signer.getAddress()
+      case WalletImplementation.simpleAccount_v6: {
         await this.simpleAccountFactoryV06.createAccount(accountOwner, this.globalFactorySalt)
         const getAddress = this.simpleAccountFactoryV06.interface.encodeFunctionData(
           'getAddress', [accountOwner, this.globalFactorySalt]
@@ -143,17 +143,18 @@ export class Environment {
         this.globalFactorySalt++
         const ret = await ethers.provider.call({ to: this.simpleAccountFactoryV06.target, data: getAddress })
         return new AbiCoder().decode(['address'], ret)[0]
+      }
       default:
         throw new Error('unsupported wallet implementation')
     }
   }
 
-  async getMaxFeePerGas () {
+  async getMaxFeePerGas (): Promise<bigint> {
     const block = await ethers.provider.getBlock('latest')
     return block!.baseFeePerGas! + PRIORITY_FEE
   }
 
-  private async prepareBalanceForGas (sender: string, description: UserOpDescription) {
+  private async prepareBalanceForGas (sender: string, description: UserOpDescription): Promise<void> {
     switch (description.gasPaymentStrategy) {
       case GasPaymentStrategy.accountBalance:
         await this.signer.sendTransaction({ to: sender, value: 1e18.toString() })

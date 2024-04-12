@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "test": "hardhat test",
-    "lint": "eslint .",
+    "lint": "eslint --fix .",
+    "tsc": "tsc",
     "compile": "hardhat compile"
   },
   "devDependencies": {

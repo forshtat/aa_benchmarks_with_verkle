@@ -10,12 +10,11 @@ interface RunResult {
 export class ResultsWriter {
   private readonly results: RunResult[] = []
 
-  addResult (name: string, txHash: string, userOpsCount: number, totalGasUsed: number) {
+  addResult (name: string, txHash: string, userOpsCount: number, totalGasUsed: number): void {
     this.results.push({ name, txHash, userOpsCount, totalGasUsed })
   }
 
-  writeResults () {
+  writeResults (): void {
     fs.writeFileSync('results.json', JSON.stringify(this.results, null, 2))
-
   }
 }

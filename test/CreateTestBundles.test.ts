@@ -1,16 +1,15 @@
 import { before } from 'mocha'
 
 import {
-  BundleDescription,
+  type BundleDescription,
   CreationStrategy,
   GasPaymentStrategy,
   PaymasterType, UserOpAction,
-  UserOpDescription,
+  type UserOpDescription,
   WalletImplementation
 } from './utils/Types'
 import { Environment } from './utils/Environment'
 import { ResultsWriter } from './utils/ResultsWriter'
-import assert from 'node:assert'
 
 const simpleAccountV06Baseline: UserOpDescription = {
   walletImplementation: WalletImplementation.simpleAccount_v6,
@@ -28,7 +27,7 @@ const bundlesToRun: BundleDescription[] = [
   {
     name: 'double-simple-account-baseline',
     userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline]
-  },
+  }
 ]
 
 describe('Creating Test Bundles', function () {

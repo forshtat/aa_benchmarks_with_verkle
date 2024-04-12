@@ -1,5 +1,9 @@
 {
+  "exclude": [
+    "wallets/"
+  ],
   "compilerOptions": {
+    "noEmit": true,
     "target": "es2020",
     "module": "commonjs",
     "esModuleInterop": true,

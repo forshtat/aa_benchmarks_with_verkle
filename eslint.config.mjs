@@ -14,8 +14,13 @@ const __dirname = path.dirname(__filename)
 const compat = new FlatCompat({ baseDirectory: __dirname, recommendedConfig: pluginJs.configs.recommended })
 
 export default [
-  { files: ['test/**/*.ts'] },
   { languageOptions: { globals: globals.node } },
-  ...compat.extends('standard-with-typescript')
+  ...compat.extends('standard-with-typescript'),
+  {
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': ['off']
+    }
+  }
   // ...tseslint.configs.recommended
 ]
