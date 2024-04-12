@@ -1,0 +1,20 @@
+[
+  {
+    "name": "single-simple-account-baseline",
+    "txHash": "0xac4cce82aae59f5065dfeed71054ad8fc4f5da66785571fd3812b3707ca32172",
+    "userOpsCount": 1,
+    "totalGasUsed": 197747
+  },
+  {
+    "name": "double-simple-account-baseline",
+    "txHash": "0xa6bde1f7fc0217f109bb986007e7bdf67dfa1b8e4799ce181467cb38eb756d12",
+    "userOpsCount": 2,
+    "totalGasUsed": 307386
+  },
+  {
+    "name": "single-zerodev-kernel-lite-baseline",
+    "txHash": "0xf5a362db7deaadf4d31dee000e10469aa0d95e813f50ba9eef9985ab95fd4235",
+    "userOpsCount": 1,
+    "totalGasUsed": 170150
+  }
+]

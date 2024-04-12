@@ -1,12 +1,5 @@
-import { before } from 'mocha'
-
 import {
   type BundleDescription,
-  CreationStrategy,
-  GasPaymentStrategy,
-  PaymasterType, UserOpAction,
-  type UserOpDescription,
-  WalletImplementation
 } from './utils/Types'
 import { Environment } from './utils/Environment'
 import { ResultsWriter } from './utils/ResultsWriter'

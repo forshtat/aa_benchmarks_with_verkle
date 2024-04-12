@@ -14,11 +14,15 @@ import { getUserOpSignature } from './ERC4337'
 
 import {
   ERC20__factory,
+  EntryPoint__factory,
+  IKernelAccountV23__factory,
+  IKernelFactoryV23,
+  IKernelFactoryV23__factory,
+  SimpleAccountFactory__factory,
   SimpleAccount__factory,
   type ERC20,
   type EntryPoint,
-  EntryPoint__factory,
-  type SimpleAccountFactory, SimpleAccountFactory__factory
+  type SimpleAccountFactory
 } from '../../typechain-types'
 import { type UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
 
@@ -36,24 +40,40 @@ export class Environment {
   globalFactorySalt: number = 0
 
   entryPointV06!: EntryPoint
-  entryPointV06Address!: string
+  // todo: create2 factory or it will break on each pre-deploy script change
+  entryPointV06Address: string = '0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6'
   erc20Token!: ERC20
 
   simpleAccountFactoryV06!: SimpleAccountFactory
-  zerodevKernelAccountFactoryV23!: SimpleAccountFactory
+  zerodevKernelAccountFactoryV23!: IKernelFactoryV23
+  zerodevKernelAccountImplementationV23!: string
+  zerodevKernelECDSAValidatorV23!: string
 
   async init (): Promise<void> {
+    this.signer = await ethers.provider.getSigner()
+    await this.initEntryPoint()
     this.beneficiary = randomAddress()
     this.chainId = (await ethers.provider.getNetwork()).chainId
-    this.signer = await ethers.provider.getSigner()
     this.erc20Token = await new ERC20__factory(this.signer).deploy('Test Token', 'TEST')
-    this.entryPointV06 = await new EntryPoint__factory(this.signer).deploy()
-    this.entryPointV06Address = await resolveAddress(this.entryPointV06.target)
     await this.initAccountFactories()
+  }
+
+  async initEntryPoint (): Promise<void> {
+    const code = await ethers.provider.getCode(this.entryPointV06Address)
+    if (code === '0x') {
+      this.entryPointV06 = await new EntryPoint__factory(this.signer).deploy()
+    } else {
+      this.entryPointV06 = EntryPoint__factory.connect(this.entryPointV06Address, this.signer)
+    }
   }
 
   async initAccountFactories (): Promise<void> {
     this.simpleAccountFactoryV06 = await new SimpleAccountFactory__factory(this.signer).deploy(this.entryPointV06Address)
+
+    const zerodevKernelFactory = require('../../wallets/zerodev-kernel/deployments/localhost/KernelFactory.json').address
+    this.zerodevKernelAccountImplementationV23 = require('../../wallets/zerodev-kernel/deployments/localhost/KernelLiteECDSA.json').address
+    this.zerodevKernelECDSAValidatorV23 = require('../../wallets/zerodev-kernel/deployments/localhost/ECDSAValidator.json').address
+    this.zerodevKernelAccountFactoryV23 = IKernelFactoryV23__factory.connect(zerodevKernelFactory, this.signer)
   }
 
   async handleOps (descriptions: UserOpDescription[]): Promise<ContractTransactionReceipt> {
@@ -102,6 +122,10 @@ export class Environment {
       this.signer
     )
 
+    if (description.walletImplementation === WalletImplementation.zerodevKernelLite_v2_3) {
+      userOp.signature = '0x00000000' + userOp.signature.replace('0x', '')
+    }
+
     await this.prepareBalanceForGas(sender, description)
     return userOp
   }
@@ -133,6 +157,12 @@ export class Environment {
           'execute', [innerCallTarget, innerCallValue, innerCallData]
         )
         break
+      case WalletImplementation.zerodevKernelLite_v2_3:
+        callData = IKernelAccountV23__factory.createInterface().encodeFunctionData(
+          'execute',
+          [innerCallTarget, innerCallValue, innerCallData, 0]
+        )
+        break
       default:
         throw new Error('unsupported wallet implementation')
     }
@@ -151,16 +181,27 @@ export class Environment {
 
     switch (description.walletImplementation) {
       case WalletImplementation.simpleAccount_v6: {
-        await this.simpleAccountFactoryV06.createAccount(accountOwner, this.globalFactorySalt)
+        this.globalFactorySalt++
+        await this.simpleAccountFactoryV06.createAccount(
+          accountOwner,
+          this.globalFactorySalt
+        )
         const getAddress = this.simpleAccountFactoryV06.interface.encodeFunctionData(
           'getAddress', [accountOwner, this.globalFactorySalt]
         )
-        this.globalFactorySalt++
         const ret = await ethers.provider.call({ to: this.simpleAccountFactoryV06.target, data: getAddress })
         return new AbiCoder().decode(['address'], ret)[0]
       }
       case WalletImplementation.zerodevKernelLite_v2_3: {
-
+        this.globalFactorySalt++
+        const initData = IKernelAccountV23__factory.createInterface().encodeFunctionData(
+          'initialize', [this.zerodevKernelECDSAValidatorV23, accountOwner])
+        await this.zerodevKernelAccountFactoryV23.createAccount(
+          this.zerodevKernelAccountImplementationV23,
+          initData,
+          this.globalFactorySalt
+        )
+        return await this.zerodevKernelAccountFactoryV23.getAccountAddress(initData, this.globalFactorySalt)
       }
       default:
         throw new Error('unsupported wallet implementation')

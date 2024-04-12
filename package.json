@@ -13,7 +13,7 @@
     ]
   },
   "scripts": {
-    "test": "hardhat test",
+    "test": "yarn deploy-zerodev-factory && hardhat test --network localhost",
     "lint": "eslint --fix .",
     "tsc": "tsc",
     "compile": "hardhat compile",
@@ -46,6 +46,7 @@
     "ethers": "^6.4.0",
     "globals": "^15.0.0",
     "hardhat": "^2.22.2",
+    "hardhat-deploy": "^0.11.26",
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
