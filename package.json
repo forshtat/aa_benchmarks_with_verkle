@@ -19,10 +19,15 @@
     "compile": "hardhat compile",
     "deploy-zerodev-factory": "cd wallets/zerodev-kernel && yarn deploy"
   },
+  "resolutions": {
+    "@zerodevapp/**/ethers": "npm:ethers@^5.7.2"
+  },
   "devDependencies": {
     "@account-abstraction/contracts": "^0.6.0",
     "@eslint/eslintrc": "^3.0.2",
     "@eslint/js": "^9.0.0",
+    "@ethersproject/providers": "^5.7.2",
+    "@ethersproject/abstract-provider": "^5.7.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-ignition": "^0.15.0",
@@ -44,6 +49,7 @@
     "eslint-plugin-n": "^15.0.0 || ^16.0.0 ",
     "eslint-plugin-promise": "^6.0.0",
     "ethers": "^6.4.0",
+    "ethersV5": "npm:ethers@^5.7.2",
     "globals": "^15.0.0",
     "hardhat": "^2.22.2",
     "hardhat-deploy": "^0.11.26",

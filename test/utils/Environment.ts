@@ -1,7 +1,8 @@
 import * as crypto from 'node:crypto'
 import assert from 'node:assert'
-import { type Signer, resolveAddress, AbiCoder, type ContractTransactionReceipt, type EventLog } from 'ethers'
+import { StaticJsonRpcProvider } from '@ethersproject/providers'
 import { ethers } from 'hardhat'
+import { type Signer, resolveAddress, AbiCoder, type ContractTransactionReceipt, type EventLog } from 'ethers'
 
 import {
   CreationStrategy,
@@ -25,6 +26,7 @@ import {
   type SimpleAccountFactory
 } from '../../typechain-types'
 import { type UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
+import { Create2Factory } from './Create2Factory'
 
 export function randomAddress (): string {
   return `0x${crypto.randomBytes(20).toString('hex')}`
@@ -40,8 +42,7 @@ export class Environment {
   globalFactorySalt: number = 0
 
   entryPointV06!: EntryPoint
-  // todo: create2 factory or it will break on each pre-deploy script change
-  entryPointV06Address: string = '0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6'
+  entryPointV06Address!: string
   erc20Token!: ERC20
 
   simpleAccountFactoryV06!: SimpleAccountFactory
@@ -59,12 +60,10 @@ export class Environment {
   }
 
   async initEntryPoint (): Promise<void> {
-    const code = await ethers.provider.getCode(this.entryPointV06Address)
-    if (code === '0x') {
-      this.entryPointV06 = await new EntryPoint__factory(this.signer).deploy()
-    } else {
-      this.entryPointV06 = EntryPoint__factory.connect(this.entryPointV06Address, this.signer)
-    }
+    const create2factory = new Create2Factory(new StaticJsonRpcProvider('http://127.0.0.1:8545'))
+    const epf = new EntryPoint__factory(this.signer)
+    this.entryPointV06Address = await create2factory.deploy(epf.bytecode, 0, process.env.COVERAGE != null ? 20e6 : 8e6)
+    this.entryPointV06 = EntryPoint__factory.connect(this.entryPointV06Address, this.signer)
   }
 
   async initAccountFactories (): Promise<void> {
@@ -115,19 +114,26 @@ export class Environment {
       signature: '0x',
       verificationGasLimit: 1000000
     }
-    userOp.signature = await getUserOpSignature(
+    userOp.signature = await this.getSignature(userOp, description)
+
+    await this.prepareBalanceForGas(sender, description)
+    return userOp
+  }
+
+  async getSignature (
+    userOp: UserOperationStruct,
+    description: UserOpDescription
+  ): Promise<string> {
+    let signature = await getUserOpSignature(
       userOp,
       this.entryPointV06Address,
       parseInt(this.chainId.toString()),
       this.signer
     )
-
     if (description.walletImplementation === WalletImplementation.zerodevKernelLite_v2_3) {
-      userOp.signature = '0x00000000' + userOp.signature.replace('0x', '')
+      signature = '0x00000000' + signature.replace('0x', '')
     }
-
-    await this.prepareBalanceForGas(sender, description)
-    return userOp
+    return signature
   }
 
   async getCalldata (description: UserOpDescription): Promise<string> {
