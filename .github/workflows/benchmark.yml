@@ -40,7 +40,7 @@ jobs:
         with:
           script: |
             # run some blocking stuff
-            hardhat-node
+            yarn hardhat-node
           readiness-script: |
             # check if whatever is it to run, is ready
             if curl -sSf http://localhost:8545/ > /dev/null; then
