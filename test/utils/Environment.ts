@@ -17,7 +17,7 @@ import {
   ERC20__factory,
   EntryPoint__factory,
   IKernelAccountV23__factory,
-  IKernelFactoryV23,
+  type IKernelFactoryV23,
   IKernelFactoryV23__factory,
   SimpleAccountFactory__factory,
   SimpleAccount__factory,
@@ -69,7 +69,7 @@ export class Environment {
   async initAccountFactories (): Promise<void> {
     this.simpleAccountFactoryV06 = await new SimpleAccountFactory__factory(this.signer).deploy(this.entryPointV06Address)
 
-    const zerodevKernelFactory = require('../../wallets/zerodev-kernel/deployments/localhost/KernelFactory.json').address
+    const zerodevKernelFactory: string = require('../../wallets/zerodev-kernel/deployments/localhost/KernelFactory.json').address
     this.zerodevKernelAccountImplementationV23 = require('../../wallets/zerodev-kernel/deployments/localhost/KernelLiteECDSA.json').address
     this.zerodevKernelECDSAValidatorV23 = require('../../wallets/zerodev-kernel/deployments/localhost/ECDSAValidator.json').address
     this.zerodevKernelAccountFactoryV23 = IKernelFactoryV23__factory.connect(zerodevKernelFactory, this.signer)

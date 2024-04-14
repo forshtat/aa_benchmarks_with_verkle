@@ -19,8 +19,12 @@ export default [
   {
     files: ['test/**/*.ts'],
     rules: {
-      '@typescript-eslint/no-non-null-assertion': ['off']
+      '@typescript-eslint/no-non-null-assertion': ['off'],
+      '@typescript-eslint/no-var-requires': ['off']
     }
+  },
+  {
+    ignores: ['wallets']
   }
   // ...tseslint.configs.recommended
 ]

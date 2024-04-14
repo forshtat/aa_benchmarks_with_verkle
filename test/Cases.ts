@@ -2,7 +2,7 @@ import {
   CreationStrategy,
   GasPaymentStrategy,
   PaymasterType, UserOpAction,
-  UserOpDescription,
+  type UserOpDescription,
   WalletImplementation
 } from './utils/Types'
 

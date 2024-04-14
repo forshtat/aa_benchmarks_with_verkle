@@ -1,5 +1,5 @@
 import {
-  type BundleDescription,
+  type BundleDescription
 } from './utils/Types'
 import { Environment } from './utils/Environment'
 import { ResultsWriter } from './utils/ResultsWriter'

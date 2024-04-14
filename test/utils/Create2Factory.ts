@@ -1,8 +1,8 @@
 // from: https://github.com/Arachnid/deterministic-deployment-proxy
-import { BigNumber, BigNumberish, ethers, Signer } from 'ethersV5'
+import { BigNumber, type BigNumberish, type ethers, type Signer } from 'ethersV5'
 import { arrayify, hexConcat, hexlify, hexZeroPad, keccak256 } from 'ethersV5/lib/utils'
-import { Provider } from '@ethersproject/providers'
-import { TransactionRequest } from '@ethersproject/abstract-provider'
+import { type Provider } from '@ethersproject/providers'
+import { type TransactionRequest } from '@ethersproject/abstract-provider'
 
 export class Create2Factory {
   factoryDeployed = false
@@ -31,7 +31,7 @@ export class Create2Factory {
     await this.deployFactory()
     if (typeof initCode !== 'string') {
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      initCode = (initCode as TransactionRequest).data!.toString()
+      initCode = (initCode).data!.toString()
     }
 
     const addr = Create2Factory.getDeployedAddress(initCode, salt)
@@ -50,8 +50,8 @@ export class Create2Factory {
     // manual estimation (its bit larger: we don't know actual deployed code size)
     if (gasLimit === undefined) {
       gasLimit = arrayify(initCode)
-          .map(x => x === 0 ? 4 : 16)
-          .reduce((sum, x) => sum + x) +
+        .map(x => x === 0 ? 4 : 16)
+        .reduce((sum, x) => sum + x) +
         200 * initCode.length / 2 + // actual is usually somewhat smaller (only deposited code, not entire constructor)
         6 * Math.ceil(initCode.length / 64) + // hash price. very minor compared to deposit costs
         32000 +

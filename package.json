@@ -17,7 +17,7 @@
     "lint": "eslint --fix .",
     "tsc": "tsc",
     "compile": "hardhat compile",
-    "preprocess": "yarn compile && yarn tsc && yarn lint",
+    "hardhat-node": "hardhat node --network localhost",
     "deploy-zerodev-factory": "cd wallets/zerodev-kernel && yarn deploy"
   },
   "resolutions": {
