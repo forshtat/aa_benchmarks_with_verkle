@@ -36,21 +36,8 @@ jobs:
           yarn tsc
 
       - name: Spin up Hardhat Node
-        uses: miguelteixeiraa/action-run-in-background@v1
-        with:
-          script: |
-            # run some blocking stuff
-            yarn hardhat-node
-          readiness-script: |
-            # check if whatever is it to run, is ready
-            if curl -sSf http://localhost:8545/ > /dev/null; then
-                echo "curl request was successful."
-            else
-                echo "curl request failed."
-                exit 1
-            fi
-          shell: bash
-          timeout: 30
+        run:
+          yarn hardhat-node &
 
       - name: Generate HandleOps Transactions
         run: |
