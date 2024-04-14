@@ -2,7 +2,7 @@ import * as crypto from 'node:crypto'
 import assert from 'node:assert'
 import { StaticJsonRpcProvider } from '@ethersproject/providers'
 import { ethers } from 'hardhat'
-import { type Signer, resolveAddress, AbiCoder, type ContractTransactionReceipt, type EventLog } from 'ethers'
+import { AbiCoder, type ContractTransactionReceipt, type EventLog, resolveAddress, type Signer } from 'ethers'
 
 import {
   CreationStrategy,
@@ -14,16 +14,16 @@ import {
 import { getUserOpSignature } from './ERC4337'
 
 import {
-  ERC20__factory,
+  type EntryPoint,
   EntryPoint__factory,
+  type ERC20,
+  ERC20__factory,
   IKernelAccountV23__factory,
   type IKernelFactoryV23,
   IKernelFactoryV23__factory,
-  SimpleAccountFactory__factory,
   SimpleAccount__factory,
-  type ERC20,
-  type EntryPoint,
-  type SimpleAccountFactory
+  type SimpleAccountFactory,
+  SimpleAccountFactory__factory
 } from '../../typechain-types'
 import { type UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
 import { Create2Factory } from './Create2Factory'
@@ -99,12 +99,13 @@ export class Environment {
 
   async createUserOp (description: UserOpDescription): Promise<UserOperationStruct> {
     const callData = await this.getCalldata(description)
-    const sender = await this.getSender(description)
+    const { sender, salt } = await this.getSender(description)
+    const initCode = await this.getInitCode(description, salt)
     const maxFeePerGas = await this.getMaxFeePerGas()
     const userOp: UserOperationStruct = {
       callData,
       callGasLimit: 1000000,
-      initCode: '0x',
+      initCode,
       maxFeePerGas,
       maxPriorityFeePerGas: PRIORITY_FEE,
       nonce: 0,
@@ -175,42 +176,85 @@ export class Environment {
     return callData
   }
 
-  async getSender (description: UserOpDescription): Promise<string> {
+  async getInitCode (description: UserOpDescription, salt: number): Promise<string> {
     const accountOwner = await this.signer.getAddress()
 
-    switch (description.creationStrategy) {
-      case CreationStrategy.usePreCreatedAccount:
-        break
-      default:
-        throw new Error('unsupported wallet creation strategy')
+    if (description.creationStrategy === CreationStrategy.usePreCreatedAccount) {
+      return '0x'
     }
 
     switch (description.walletImplementation) {
       case WalletImplementation.simpleAccount_v6: {
+        const functionData = this
+          .simpleAccountFactoryV06
+          .interface
+          .encodeFunctionData(
+            'createAccount', [accountOwner, salt]
+          )
+        const factoryAddress = await resolveAddress(this.simpleAccountFactoryV06.target)
+        return factoryAddress + functionData.replace('0x', '')
+      }
+      case WalletImplementation.zerodevKernelLite_v2_3: {
+        const initData = IKernelAccountV23__factory.createInterface().encodeFunctionData(
+          'initialize', [this.zerodevKernelECDSAValidatorV23, accountOwner])
+        const functionData =
+          this
+            .zerodevKernelAccountFactoryV23
+            .interface
+            .encodeFunctionData('createAccount', [
+              this.zerodevKernelAccountImplementationV23, initData, salt
+            ])
+        const factoryAddress = await resolveAddress(this.zerodevKernelAccountFactoryV23.target)
+        return factoryAddress + functionData.replace('0x', '')
+      }
+      default:
+        throw new Error('unsupported wallet implementation')
+    }
+  }
+
+  async getSender (description: UserOpDescription): Promise<{
+    sender: string
+    salt: number
+  }> {
+    const accountOwner = await this.signer.getAddress()
+
+    let sender
+    switch (description.walletImplementation) {
+      case WalletImplementation.simpleAccount_v6: {
         this.globalFactorySalt++
-        await this.simpleAccountFactoryV06.createAccount(
-          accountOwner,
-          this.globalFactorySalt
-        )
+        if (description.creationStrategy === CreationStrategy.usePreCreatedAccount) {
+          await this.simpleAccountFactoryV06.createAccount(
+            accountOwner,
+            this.globalFactorySalt
+          )
+        }
         const getAddress = this.simpleAccountFactoryV06.interface.encodeFunctionData(
           'getAddress', [accountOwner, this.globalFactorySalt]
         )
         const ret = await ethers.provider.call({ to: this.simpleAccountFactoryV06.target, data: getAddress })
-        return new AbiCoder().decode(['address'], ret)[0]
+        sender = new AbiCoder().decode(['address'], ret)[0]
       }
+        break
       case WalletImplementation.zerodevKernelLite_v2_3: {
         this.globalFactorySalt++
         const initData = IKernelAccountV23__factory.createInterface().encodeFunctionData(
           'initialize', [this.zerodevKernelECDSAValidatorV23, accountOwner])
-        await this.zerodevKernelAccountFactoryV23.createAccount(
-          this.zerodevKernelAccountImplementationV23,
-          initData,
-          this.globalFactorySalt
-        )
-        return await this.zerodevKernelAccountFactoryV23.getAccountAddress(initData, this.globalFactorySalt)
+        if (description.creationStrategy === CreationStrategy.usePreCreatedAccount) {
+          await this.zerodevKernelAccountFactoryV23.createAccount(
+            this.zerodevKernelAccountImplementationV23,
+            initData,
+            this.globalFactorySalt
+          )
+        }
+        sender = await this.zerodevKernelAccountFactoryV23.getAccountAddress(initData, this.globalFactorySalt)
       }
+        break
       default:
         throw new Error('unsupported wallet implementation')
+    }
+    return {
+      sender,
+      salt: this.globalFactorySalt
     }
   }
 

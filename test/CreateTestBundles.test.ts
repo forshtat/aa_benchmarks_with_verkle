@@ -1,24 +1,6 @@
-import {
-  type BundleDescription
-} from './utils/Types'
 import { Environment } from './utils/Environment'
 import { ResultsWriter } from './utils/ResultsWriter'
-import { kernelLiteV23Baseline, simpleAccountV06Baseline } from './Cases'
-
-const bundlesToRun: BundleDescription[] = [
-  {
-    name: 'single-simple-account-baseline',
-    userOps: [simpleAccountV06Baseline]
-  },
-  {
-    name: 'double-simple-account-baseline',
-    userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline]
-  },
-  {
-    name: 'single-zerodev-kernel-lite-baseline',
-    userOps: [kernelLiteV23Baseline]
-  }
-]
+import { bundlesToRun } from './Cases'
 
 describe('Creating Test Bundles', function () {
   let environment: Environment
