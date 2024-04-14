@@ -13,8 +13,8 @@ export enum GasPaymentStrategy {
 
 export enum PaymasterType {
   noPaymaster = 0,
-  verifyingPaymaster = 0,
-  erc20TokenPaymaster = 1
+  verifyingPaymaster = 1,
+  erc20TokenPaymaster = 2
 }
 
 export enum CreationStrategy {

@@ -1,20 +1,74 @@
 [
   {
     "name": "single-simple-account-baseline",
-    "txHash": "0xac4cce82aae59f5065dfeed71054ad8fc4f5da66785571fd3812b3707ca32172",
+    "txHash": "0xacf1a75f51808317f622b2fdb1c426b26bfafa4297bcc0f82a3a3a4fa8d5623e",
     "userOpsCount": 1,
-    "totalGasUsed": 197747
+    "totalGasUsed": 172759
   },
   {
     "name": "double-simple-account-baseline",
-    "txHash": "0xa6bde1f7fc0217f109bb986007e7bdf67dfa1b8e4799ce181467cb38eb756d12",
+    "txHash": "0xb6ba98b3a3d185088fb518da8834e43395deb42229b3f541d552683704aa3b23",
     "userOpsCount": 2,
-    "totalGasUsed": 307386
+    "totalGasUsed": 257386
+  },
+  {
+    "name": "single-simple-account-with-creation",
+    "txHash": "0xe170d756faebcd2c6672c1ba83b2adea9e6ea5608eac8534ce1f5e1f8b1d50bc",
+    "userOpsCount": 1,
+    "totalGasUsed": 302043
+  },
+  {
+    "name": "double-simple-account-with-creation",
+    "txHash": "0x6ac6960fa7c3a3adba62a9c437d7b877f7f7584b69faa0b75007a7c195b5956c",
+    "userOpsCount": 2,
+    "totalGasUsed": 560897
+  },
+  {
+    "name": "single-simple-account-verifying-paymaster",
+    "txHash": "0x959a3d14c82991da15ea64f471cbc328731d642a5e5f01d81793a130c0767773",
+    "userOpsCount": 1,
+    "totalGasUsed": 184065
+  },
+  {
+    "name": "double-simple-account-verifying-paymaster",
+    "txHash": "0x151de692b3fd6d0405c5c4b2c37f6c2c520d347af0bf0da498167f9584ea857a",
+    "userOpsCount": 2,
+    "totalGasUsed": 320201
   },
   {
     "name": "single-zerodev-kernel-lite-baseline",
-    "txHash": "0xf5a362db7deaadf4d31dee000e10469aa0d95e813f50ba9eef9985ab95fd4235",
+    "txHash": "0xc55fd90c79f6be68a616f3773fb5af9db2721d563b2139759cda04b42b615dd4",
     "userOpsCount": 1,
-    "totalGasUsed": 170150
+    "totalGasUsed": 145162
+  },
+  {
+    "name": "double-zerodev-kernel-lite-baseline",
+    "txHash": "0xf8d6bd9033de5127661be11c27578ffedab2d3a691e375bbf8f082c714981780",
+    "userOpsCount": 2,
+    "totalGasUsed": 252165
+  },
+  {
+    "name": "single-zerodev-kernel-lite-with-creation",
+    "txHash": "0x095abab973a3df455512f328b27a5b8fa5a753e43fa54be99aaf8e11d53bb390",
+    "userOpsCount": 1,
+    "totalGasUsed": 262957
+  },
+  {
+    "name": "double-zerodev-kernel-lite-with-creation",
+    "txHash": "0x6c30ea94f2ae0e51f1e8e6aad10463dce932c1e5f19feb61c7412efe6ef398c2",
+    "userOpsCount": 2,
+    "totalGasUsed": 480724
+  },
+  {
+    "name": "single-zerodev-kernel-lite-verifying-paymaster",
+    "txHash": "0x381ffa90d12db23469e39bc232622a8b5bb53ab5113d0afacf1b95cadc6a7ea5",
+    "userOpsCount": 1,
+    "totalGasUsed": 181922
+  },
+  {
+    "name": "double-zerodev-kernel-lite-verifying-paymaster",
+    "txHash": "0xdf5e66f921cb962dbcd252b69a11975adf5c0fad6616327af3e29f4f9fa02ee3",
+    "userOpsCount": 2,
+    "totalGasUsed": 315900
   }
 ]

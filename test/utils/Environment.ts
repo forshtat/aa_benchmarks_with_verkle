@@ -1,12 +1,12 @@
 import * as crypto from 'node:crypto'
 import assert from 'node:assert'
+import { AbiCoder, type ContractTransactionReceipt, type EventLog, getBytes, resolveAddress, type Signer } from 'ethers'
 import { StaticJsonRpcProvider } from '@ethersproject/providers'
 import { ethers } from 'hardhat'
-import { AbiCoder, type ContractTransactionReceipt, type EventLog, resolveAddress, type Signer } from 'ethers'
 
 import {
   CreationStrategy,
-  GasPaymentStrategy,
+  GasPaymentStrategy, PaymasterType,
   UserOpAction,
   type UserOpDescription,
   WalletImplementation
@@ -14,16 +14,18 @@ import {
 import { getUserOpSignature } from './ERC4337'
 
 import {
-  type EntryPoint,
-  EntryPoint__factory,
-  type ERC20,
   ERC20__factory,
+  EntryPoint__factory,
   IKernelAccountV23__factory,
-  type IKernelFactoryV23,
   IKernelFactoryV23__factory,
+  SimpleAccountFactory__factory,
   SimpleAccount__factory,
+  VerifyingPaymaster__factory,
+  type ERC20,
+  type EntryPoint,
+  type IKernelFactoryV23,
   type SimpleAccountFactory,
-  SimpleAccountFactory__factory
+  type VerifyingPaymaster
 } from '../../typechain-types'
 import { type UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
 import { Create2Factory } from './Create2Factory'
@@ -32,7 +34,7 @@ export function randomAddress (): string {
   return `0x${crypto.randomBytes(20).toString('hex')}`
 }
 
-const PRIORITY_FEE = 1000000000n
+const PRIORITY_FEE = '1000000000'
 
 export class Environment {
   signer!: Signer
@@ -50,9 +52,12 @@ export class Environment {
   zerodevKernelAccountImplementationV23!: string
   zerodevKernelECDSAValidatorV23!: string
 
+  verifyingPaymaster!: VerifyingPaymaster
+
   async init (): Promise<void> {
     this.signer = await ethers.provider.getSigner()
     await this.initEntryPoint()
+    await this.initPaymaster()
     this.beneficiary = randomAddress()
     this.chainId = (await ethers.provider.getNetwork()).chainId
     this.erc20Token = await new ERC20__factory(this.signer).deploy('Test Token', 'TEST')
@@ -64,6 +69,15 @@ export class Environment {
     const epf = new EntryPoint__factory(this.signer)
     this.entryPointV06Address = await create2factory.deploy(epf.bytecode, 0, process.env.COVERAGE != null ? 20e6 : 8e6)
     this.entryPointV06 = EntryPoint__factory.connect(this.entryPointV06Address, this.signer)
+  }
+
+  async initPaymaster (): Promise<void> {
+    const accountOwner = await this.signer.getAddress()
+
+    this.verifyingPaymaster = await new VerifyingPaymaster__factory(this.signer)
+      .deploy(this.entryPointV06Address, accountOwner)
+
+    await this.verifyingPaymaster.deposit({ value: 1e18.toString() })
   }
 
   async initAccountFactories (): Promise<void> {
@@ -115,6 +129,7 @@ export class Environment {
       signature: '0x',
       verificationGasLimit: 1000000
     }
+    userOp.paymasterAndData = await this.getPaymasterAndData(userOp, description)
     userOp.signature = await this.getSignature(userOp, description)
 
     await this.prepareBalanceForGas(sender, description)
@@ -142,6 +157,9 @@ export class Environment {
     let innerCallData: string
     let innerCallValue: string
     const randomDestination = randomAddress()
+
+    // Initialize destination address to avoid 25000 gas charge
+    await this.signer.sendTransaction({ to: randomDestination, value: 1 })
 
     switch (description.userOpAction) {
       case UserOpAction.valueTransfer:
@@ -174,6 +192,32 @@ export class Environment {
         throw new Error('unsupported wallet implementation')
     }
     return callData
+  }
+
+  async getPaymasterAndData (
+    userOp: UserOperationStruct,
+    description: UserOpDescription
+  ): Promise<string> {
+    switch (description.paymasterType) {
+      case PaymasterType.noPaymaster:
+        return '0x'
+      case PaymasterType.verifyingPaymaster: {
+        const MOCK_VALID_UNTIL = '0x00000000deadbeef'
+        const MOCK_VALID_AFTER = '0x0000000000001234'
+        // the VerifyingPaymaster::getHash function is affected by placeholder paymaster data length
+        userOp.paymasterAndData = '0x' + 'ff'.repeat(148)
+        const hash = await this.verifyingPaymaster.getHash(userOp, MOCK_VALID_UNTIL, MOCK_VALID_AFTER)
+        const hashBuffer = getBytes(hash)
+        const sig = await this.signer.signMessage(hashBuffer)
+        const paymasterAddress = await resolveAddress(this.verifyingPaymaster.target)
+        const validityTimeRange = new AbiCoder().encode(['uint48', 'uint48'], [MOCK_VALID_UNTIL, MOCK_VALID_AFTER]).replace('0x', '')
+        return paymasterAddress +
+          validityTimeRange +
+          sig.replace('0x', '')
+      }
+      default:
+        throw new Error('unsupported paymaster')
+    }
   }
 
   async getInitCode (description: UserOpDescription, salt: number): Promise<string> {
@@ -260,7 +304,7 @@ export class Environment {
 
   async getMaxFeePerGas (): Promise<bigint> {
     const block = await ethers.provider.getBlock('latest')
-    return block!.baseFeePerGas! + PRIORITY_FEE
+    return block!.baseFeePerGas! + BigInt(PRIORITY_FEE)
   }
 
   private async prepareBalanceForGas (sender: string, description: UserOpDescription): Promise<void> {
