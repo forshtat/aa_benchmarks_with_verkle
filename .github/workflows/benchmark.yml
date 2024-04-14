@@ -17,16 +17,16 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
 
       - name: Set Node.js 18.x
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18.x
+          cache: 'yarn'
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+
       - name: Run install
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install
+        run: yarn install
 
       - name: Hardhat Compile
         run: |
