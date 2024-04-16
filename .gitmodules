@@ -2,3 +2,6 @@
 	path = wallets/zerodev-kernel
 	url = git@github.com:forshtat/zerodev-kernel.git
 	branch = hardhat-deploy-script-for-benchmark
+[submodule "script/verkle-gas-estimator"]
+	path = script/verkle-gas-estimator
+	url = git@github.com:eth-infinitism/verkle-gas-estimator.git

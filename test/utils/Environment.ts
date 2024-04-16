@@ -29,6 +29,7 @@ import {
 } from '../../typechain-types'
 import { type UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
 import { Create2Factory } from './Create2Factory'
+import { ResultsWriter } from './ResultsWriter'
 
 export function randomAddress (): string {
   return `0x${crypto.randomBytes(20).toString('hex')}`
@@ -37,6 +38,8 @@ export function randomAddress (): string {
 const PRIORITY_FEE = '1000000000'
 
 export class Environment {
+  resultsWriter: ResultsWriter = new ResultsWriter()
+
   signer!: Signer
   // resultsWriter!: ResultsWriter
   beneficiary!: string
@@ -61,6 +64,7 @@ export class Environment {
     this.beneficiary = randomAddress()
     this.chainId = (await ethers.provider.getNetwork()).chainId
     this.erc20Token = await new ERC20__factory(this.signer).deploy('Test Token', 'TEST')
+    await this.resultsWriter.addContractName(this.erc20Token.target, 'Test Token')
     await this.initAccountFactories()
   }
 
@@ -68,6 +72,7 @@ export class Environment {
     const create2factory = new Create2Factory(new StaticJsonRpcProvider('http://127.0.0.1:8545'))
     const epf = new EntryPoint__factory(this.signer)
     this.entryPointV06Address = await create2factory.deploy(epf.bytecode, 0, process.env.COVERAGE != null ? 20e6 : 8e6)
+    await this.resultsWriter.addContractName(this.entryPointV06Address, 'EntryPoint v0.6')
     this.entryPointV06 = EntryPoint__factory.connect(this.entryPointV06Address, this.signer)
   }
 
@@ -76,16 +81,21 @@ export class Environment {
 
     this.verifyingPaymaster = await new VerifyingPaymaster__factory(this.signer)
       .deploy(this.entryPointV06Address, accountOwner)
-
+    await this.resultsWriter.addContractName(this.verifyingPaymaster.target, 'VerifyingPaymaster')
     await this.verifyingPaymaster.deposit({ value: 1e18.toString() })
   }
 
   async initAccountFactories (): Promise<void> {
     this.simpleAccountFactoryV06 = await new SimpleAccountFactory__factory(this.signer).deploy(this.entryPointV06Address)
+    await this.resultsWriter.addContractName(this.simpleAccountFactoryV06.target, 'SimpleAccountFactory')
 
     const zerodevKernelFactory: string = require('../../wallets/zerodev-kernel/deployments/localhost/KernelFactory.json').address
     this.zerodevKernelAccountImplementationV23 = require('../../wallets/zerodev-kernel/deployments/localhost/KernelLiteECDSA.json').address
     this.zerodevKernelECDSAValidatorV23 = require('../../wallets/zerodev-kernel/deployments/localhost/ECDSAValidator.json').address
+    await this.resultsWriter.addContractName(zerodevKernelFactory, 'KernelFactory v2.3')
+    await this.resultsWriter.addContractName(this.zerodevKernelAccountImplementationV23, 'KernelAccountImplementation v2.3')
+    await this.resultsWriter.addContractName(this.zerodevKernelECDSAValidatorV23, 'KernelECDSAValidator v2.3')
+
     this.zerodevKernelAccountFactoryV23 = IKernelFactoryV23__factory.connect(zerodevKernelFactory, this.signer)
   }
 
@@ -262,7 +272,7 @@ export class Environment {
   }> {
     const accountOwner = await this.signer.getAddress()
 
-    let sender
+    let sender: string
     switch (description.walletImplementation) {
       case WalletImplementation.simpleAccount_v6: {
         this.globalFactorySalt++
@@ -277,6 +287,7 @@ export class Environment {
         )
         const ret = await ethers.provider.call({ to: this.simpleAccountFactoryV06.target, data: getAddress })
         sender = new AbiCoder().decode(['address'], ret)[0]
+        await this.resultsWriter.addContractName(sender, 'SimpleAccount')
       }
         break
       case WalletImplementation.zerodevKernelLite_v2_3: {
@@ -291,6 +302,7 @@ export class Environment {
           )
         }
         sender = await this.zerodevKernelAccountFactoryV23.getAccountAddress(initData, this.globalFactorySalt)
+        await this.resultsWriter.addContractName(sender, 'KernelLite v2.3')
       }
         break
       default:
