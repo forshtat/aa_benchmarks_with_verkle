@@ -14,7 +14,7 @@
   },
   "scripts": {
     "test": "yarn deploy-zerodev-factory && hardhat test --network localhost",
-    "estimate-verkle": "./scripts/verkle_gas_estimator.py -multiple results.json",
+    "estimate-verkle": "./script/verkle-gas-estimator/verkle_gas_estimator.py -multiple results.json",
     "lint": "eslint --fix .",
     "tsc": "tsc",
     "compile": "hardhat compile",
