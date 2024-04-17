@@ -52,5 +52,10 @@ jobs:
         run: |
           yarn estimate-verkle
 
+      - name: Save Verkle Gas Effects Report CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: verkle-effects-estimate
+          path: ./verkle-effects-estimate.csv
       - run: echo "🍏 This job's status is ${{ job.status }}."
 

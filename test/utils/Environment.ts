@@ -74,7 +74,7 @@ export class Environment {
     this.entryPointV06Address = await create2factory.deploy(epf.bytecode, 0, process.env.COVERAGE != null ? 20e6 : 8e6)
     await this.resultsWriter.addContractName(this.entryPointV06Address, 'EntryPoint v0.6')
     // hard-coded address is not very reliable but SenderCreator is privant in EntryPoint
-    await this.resultsWriter.addContractName('0x67dfae54c8d7229c2ae14d36e66720326269f923', 'E.P. SenderCreator v0.6')
+    await this.resultsWriter.addContractName('0x32d573eee83015ea153d985d454144937361fdab', 'E.P. SenderCreator v0.6')
     this.entryPointV06 = EntryPoint__factory.connect(this.entryPointV06Address, this.signer)
   }
 
