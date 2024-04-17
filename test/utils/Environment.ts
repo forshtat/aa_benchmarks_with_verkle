@@ -73,6 +73,8 @@ export class Environment {
     const epf = new EntryPoint__factory(this.signer)
     this.entryPointV06Address = await create2factory.deploy(epf.bytecode, 0, process.env.COVERAGE != null ? 20e6 : 8e6)
     await this.resultsWriter.addContractName(this.entryPointV06Address, 'EntryPoint v0.6')
+    // hard-coded address is not very reliable but SenderCreator is privant in EntryPoint
+    await this.resultsWriter.addContractName('0x67dfae54c8d7229c2ae14d36e66720326269f923', 'E.P. SenderCreator v0.6')
     this.entryPointV06 = EntryPoint__factory.connect(this.entryPointV06Address, this.signer)
   }
 
@@ -87,7 +89,9 @@ export class Environment {
 
   async initAccountFactories (): Promise<void> {
     this.simpleAccountFactoryV06 = await new SimpleAccountFactory__factory(this.signer).deploy(this.entryPointV06Address)
+    const implementation = await this.simpleAccountFactoryV06.accountImplementation()
     await this.resultsWriter.addContractName(this.simpleAccountFactoryV06.target, 'SimpleAccountFactory')
+    await this.resultsWriter.addContractName(implementation, 'SimpleAccountImplementation')
 
     const zerodevKernelFactory: string = require('../../wallets/zerodev-kernel/deployments/localhost/KernelFactory.json').address
     this.zerodevKernelAccountImplementationV23 = require('../../wallets/zerodev-kernel/deployments/localhost/KernelLiteECDSA.json').address
@@ -287,7 +291,7 @@ export class Environment {
         )
         const ret = await ethers.provider.call({ to: this.simpleAccountFactoryV06.target, data: getAddress })
         sender = new AbiCoder().decode(['address'], ret)[0]
-        await this.resultsWriter.addContractName(sender, 'SimpleAccount')
+        await this.resultsWriter.addContractName(sender, 'ERC1967Proxy')
       }
         break
       case WalletImplementation.zerodevKernelLite_v2_3: {
