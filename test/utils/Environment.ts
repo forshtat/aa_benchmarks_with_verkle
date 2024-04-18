@@ -14,17 +14,17 @@ import {
 import { getUserOpSignature } from './ERC4337'
 
 import {
-  ERC20__factory,
   EntryPoint__factory,
   IKernelAccountV23__factory,
   IKernelFactoryV23__factory,
   SimpleAccountFactory__factory,
   SimpleAccount__factory,
+  TestERC20__factory,
   VerifyingPaymaster__factory,
-  type ERC20,
   type EntryPoint,
   type IKernelFactoryV23,
   type SimpleAccountFactory,
+  type TestERC20,
   type VerifyingPaymaster
 } from '../../typechain-types'
 import { type UserOperationStruct } from '../../typechain-types/@account-abstraction/contracts/core/EntryPoint'
@@ -48,7 +48,7 @@ export class Environment {
 
   entryPointV06!: EntryPoint
   entryPointV06Address!: string
-  erc20Token!: ERC20
+  erc20Token!: TestERC20
 
   simpleAccountFactoryV06!: SimpleAccountFactory
   zerodevKernelAccountFactoryV23!: IKernelFactoryV23
@@ -62,9 +62,11 @@ export class Environment {
     await this.initEntryPoint()
     await this.initPaymaster()
     this.beneficiary = randomAddress()
+    await this.signer.sendTransaction({ to: this.beneficiary, value: 1 })
+
     this.chainId = (await ethers.provider.getNetwork()).chainId
-    this.erc20Token = await new ERC20__factory(this.signer).deploy('Test Token', 'TEST')
-    await this.resultsWriter.addContractName(this.erc20Token.target, 'Test Token')
+    this.erc20Token = await new TestERC20__factory(this.signer).deploy('TestERC20', 'TEST')
+    await this.resultsWriter.addContractName(this.erc20Token.target, 'TestERC20')
     await this.initAccountFactories()
   }
 
@@ -126,8 +128,8 @@ export class Environment {
   }
 
   async createUserOp (description: UserOpDescription): Promise<UserOperationStruct> {
-    const callData = await this.getCalldata(description)
     const { sender, salt } = await this.getSender(description)
+    const callData = await this.getCalldata(description, sender)
     const initCode = await this.getInitCode(description, salt)
     const maxFeePerGas = await this.getMaxFeePerGas()
     const userOp: UserOperationStruct = {
@@ -166,7 +168,7 @@ export class Environment {
     return signature
   }
 
-  async getCalldata (description: UserOpDescription): Promise<string> {
+  async getCalldata (description: UserOpDescription, sender: string): Promise<string> {
     let innerCallTarget: string
     let innerCallData: string
     let innerCallValue: string
@@ -182,6 +184,7 @@ export class Environment {
         innerCallValue = '100000'
         break
       case UserOpAction.erc20Transfer:
+        await this.erc20Token.mint(sender, 10000)
         innerCallTarget = await resolveAddress(this.erc20Token.target)
         innerCallData = this.erc20Token.interface.encodeFunctionData('transfer', [randomDestination, 1000])
         innerCallValue = '0'

@@ -5,12 +5,10 @@ import {EntryPoint as EntryPointV06} from "@account-abstraction/contracts/core/E
 import {VerifyingPaymaster as VerifyingPaymasterV06} from "@account-abstraction/contracts/samples/VerifyingPaymaster.sol";
 import {SimpleAccount as SimpleAccountV06} from "@account-abstraction/contracts/samples/SimpleAccount.sol";
 import {SimpleAccountFactory as SimpleAccountFactoryV06} from "@account-abstraction/contracts/samples/SimpleAccountFactory.sol";
-import {ERC20} from  "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract Artifacts {
     EntryPointV06 public entryPoint;
     SimpleAccountV06 public simpleAccount;
     SimpleAccountFactoryV06 public simpleAccountFactory;
     VerifyingPaymasterV06 public verifyingPaymaster;
-    ERC20 public erc20;
 }
