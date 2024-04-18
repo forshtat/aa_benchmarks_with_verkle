@@ -73,6 +73,7 @@ export class Environment {
   async initEntryPoint (): Promise<void> {
     const create2factory = new Create2Factory(new StaticJsonRpcProvider('http://127.0.0.1:8545'))
     const epf = new EntryPoint__factory(this.signer)
+    // const epf = require('@account-abstraction/contracts/artifacts/EntryPoint.json')
     this.entryPointV06Address = await create2factory.deploy(epf.bytecode, 0, process.env.COVERAGE != null ? 20e6 : 8e6)
     await this.resultsWriter.addContractName(this.entryPointV06Address, 'EntryPoint v0.6')
     // hard-coded address is not very reliable but SenderCreator is privant in EntryPoint
