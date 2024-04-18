@@ -185,6 +185,7 @@ export class Environment {
         break
       case UserOpAction.erc20Transfer:
         await this.erc20Token.mint(sender, 10000)
+        await this.erc20Token.mint(randomDestination, 1)
         innerCallTarget = await resolveAddress(this.erc20Token.target)
         innerCallData = this.erc20Token.interface.encodeFunctionData('transfer', [randomDestination, 1000])
         innerCallValue = '0'
