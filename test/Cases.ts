@@ -67,28 +67,22 @@ export const kernelLiteV23WithCreationAndVerifyingPaymaster: UserOpDescription =
 
 export const bundlesToRun: BundleDescription[] = [
   {
-    name: 'single-simple-account-baseline',
+    name: 'single-simple-account-eth-transfer-baseline',
     userOps: [simpleAccountV06Baseline]
   },
   {
-    name: 'double-simple-account-baseline',
+    name: 'double-simple-account-eth-transfer-baseline',
     userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline]
   },
   {
-    name: 'single-simple-account-with-creation',
-    userOps: [simpleAccountV06WithCreation]
+    name: 'three-simple-account-eth-transfer-(A->X B->Y A->Z)',
+    userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline],
+    reuseAccounts: [0, 1, 0]
   },
   {
-    name: 'double-simple-account-with-creation',
-    userOps: [simpleAccountV06WithCreation, simpleAccountV06WithCreation]
-  },
-  {
-    name: 'single-simple-account-verifying-paymaster',
-    userOps: [simpleAccountV06VerifyingPaymaster]
-  },
-  {
-    name: 'double-simple-account-verifying-paymaster',
-    userOps: [simpleAccountV06VerifyingPaymaster, simpleAccountV06VerifyingPaymaster]
+    name: 'four-simple-account-eth-transfer-(A->X B->Y A->Z B->W)',
+    userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline],
+    reuseAccounts: [0, 1, 0, 1]
   },
   {
     name: 'single-zerodev-kernel-lite-baseline',
@@ -99,12 +93,38 @@ export const bundlesToRun: BundleDescription[] = [
     userOps: [kernelLiteV23Baseline, kernelLiteV23Baseline]
   },
   {
+    name: 'three-zerodev-kernel-eth-transfer-(A->X B->Y A->Z)',
+    userOps: [kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline],
+    reuseAccounts: [0, 1, 0]
+  },
+  {
+    name: 'four-zerodev-kernel-eth-transfer-(A->X B->Y A->Z B->W)',
+    userOps: [kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline],
+    reuseAccounts: [0, 1, 0, 1]
+  },
+  {
+    name: 'single-simple-account-with-creation',
+    userOps: [simpleAccountV06WithCreation]
+  },
+  {
+    name: 'double-simple-account-with-creation',
+    userOps: [simpleAccountV06WithCreation, simpleAccountV06WithCreation]
+  },
+  {
     name: 'single-zerodev-kernel-lite-with-creation',
     userOps: [kernelLiteV23WithCreation]
   },
   {
     name: 'double-zerodev-kernel-lite-with-creation',
     userOps: [kernelLiteV23WithCreation, kernelLiteV23WithCreation]
+  },
+  {
+    name: 'single-simple-account-verifying-paymaster',
+    userOps: [simpleAccountV06VerifyingPaymaster]
+  },
+  {
+    name: 'double-simple-account-verifying-paymaster',
+    userOps: [simpleAccountV06VerifyingPaymaster, simpleAccountV06VerifyingPaymaster]
   },
   {
     name: 'single-zerodev-kernel-lite-verifying-paymaster',
@@ -130,7 +150,6 @@ export const bundlesToRun: BundleDescription[] = [
     name: 'double-zerodev-kernel-lite-erc20-transfer',
     userOps: [kernelLiteV23ERC20Transfer, kernelLiteV23ERC20Transfer]
   },
-
   {
     name: 'single-simple-account-lite-with-creation-and-paymaster',
     userOps: [simpleAccountV06WithCreationAndVerifyingPaymaster]
@@ -146,25 +165,5 @@ export const bundlesToRun: BundleDescription[] = [
   {
     name: 'double-zerodev-kernel-lite-with-creation-and-paymaster',
     userOps: [kernelLiteV23WithCreationAndVerifyingPaymaster, kernelLiteV23WithCreationAndVerifyingPaymaster]
-  },
-  {
-    name: 'three-simple-account-eth-transfer-(A->X B->Y A->Z)',
-    userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline],
-    reuseAccounts: [0, 1, 0]
-  },
-  {
-    name: 'four-simple-account-eth-transfer-(A->X B->Y A->Z B->W)',
-    userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline],
-    reuseAccounts: [0, 1, 0, 1]
-  },
-  {
-    name: 'three-zerodev-kernel-eth-transfer-(A->X B->Y A->Z)',
-    userOps: [kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline],
-    reuseAccounts: [0, 1, 0]
-  },
-  {
-    name: 'four-zerodev-kernel-eth-transfer-(A->X B->Y A->Z B->W)',
-    userOps: [kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline],
-    reuseAccounts: [0, 1, 0, 1]
   }
 ]
