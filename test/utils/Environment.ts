@@ -133,13 +133,14 @@ export class Environment {
     const callData = await this.getCalldata(description, sender)
     const initCode = await this.getInitCode(description, salt)
     const maxFeePerGas = await this.getMaxFeePerGas()
+    const nonce = await this.getNonce(sender)
     const userOp: UserOperationStruct = {
       callData,
       callGasLimit: 1000000,
       initCode,
       maxFeePerGas,
       maxPriorityFeePerGas: PRIORITY_FEE,
-      nonce: 0,
+      nonce,
       paymasterAndData: '0x',
       preVerificationGas: 1000000,
       sender,
@@ -285,33 +286,39 @@ export class Environment {
     switch (description.walletImplementation) {
       case WalletImplementation.simpleAccount_v6: {
         this.globalFactorySalt++
-        if (description.creationStrategy === CreationStrategy.usePreCreatedAccount) {
-          await this.simpleAccountFactoryV06.createAccount(
-            accountOwner,
-            this.globalFactorySalt
-          )
-        }
+
         const getAddress = this.simpleAccountFactoryV06.interface.encodeFunctionData(
           'getAddress', [accountOwner, this.globalFactorySalt]
         )
         const ret = await ethers.provider.call({ to: this.simpleAccountFactoryV06.target, data: getAddress })
         sender = new AbiCoder().decode(['address'], ret)[0]
         await this.resultsWriter.addContractName(sender, 'ERC1967Proxy')
+
+        if (description.creationStrategy === CreationStrategy.usePreCreatedAccount) {
+          await this.simpleAccountFactoryV06.createAccount(
+            accountOwner,
+            this.globalFactorySalt
+          )
+          await this.initializeNonce(description, sender)
+        }
       }
         break
       case WalletImplementation.zerodevKernelLite_v2_3: {
         this.globalFactorySalt++
         const initData = IKernelAccountV23__factory.createInterface().encodeFunctionData(
           'initialize', [this.zerodevKernelECDSAValidatorV23, accountOwner])
+
+        sender = await this.zerodevKernelAccountFactoryV23.getAccountAddress(initData, this.globalFactorySalt)
+        await this.resultsWriter.addContractName(sender, 'KernelLite v2.3')
+
         if (description.creationStrategy === CreationStrategy.usePreCreatedAccount) {
           await this.zerodevKernelAccountFactoryV23.createAccount(
             this.zerodevKernelAccountImplementationV23,
             initData,
             this.globalFactorySalt
           )
+          await this.initializeNonce(description, sender)
         }
-        sender = await this.zerodevKernelAccountFactoryV23.getAccountAddress(initData, this.globalFactorySalt)
-        await this.resultsWriter.addContractName(sender, 'KernelLite v2.3')
       }
         break
       default:
@@ -333,8 +340,46 @@ export class Environment {
       case GasPaymentStrategy.accountBalance:
         await this.signer.sendTransaction({ to: sender, value: 1e18.toString() })
         break
+      case GasPaymentStrategy.accountDeposit:
+        await this.signer.sendTransaction({ to: sender, value: 100000 })
+        await this.entryPointV06.depositTo(sender, { value: 1e18.toString() })
+        break
       default:
         throw new Error('gas payment strategy not supported')
     }
+  }
+
+  /**
+   * Initializing the `nonceSequenceNumber[msg.sender][key]` value in `NonceManager` to avoid rare 20000 gas SSTORE.
+   */
+  async initializeNonce (description: UserOpDescription, accountAddress: string): Promise<void> {
+    const nonceBefore = await this.getNonce(accountAddress)
+    if (nonceBefore !== 0n) {
+      return
+    }
+    const incrementNonceData =
+      this.entryPointV06.interface.encodeFunctionData('incrementNonce', [0])
+
+    switch (description.walletImplementation) {
+      case WalletImplementation.simpleAccount_v6: {
+        const account = SimpleAccount__factory.connect(accountAddress, this.signer)
+        await account.execute(this.entryPointV06.target, 0, incrementNonceData)
+        break
+      }
+      case WalletImplementation.zerodevKernelLite_v2_3: {
+        const account = IKernelAccountV23__factory.connect(accountAddress, this.signer)
+        await account.execute(this.entryPointV06.target, 0, incrementNonceData, 0)
+        break
+      }
+      default:
+        throw new Error('unsupported wallet implementation')
+    }
+
+    const nonceAfter = await this.getNonce(accountAddress)
+    assert(nonceAfter === 1n, `failed to increment account nonce ${accountAddress}}`)
+  }
+
+  async getNonce (accountAddress: string): Promise<bigint> {
+    return await this.entryPointV06.getNonce(accountAddress, 0)
   }
 }

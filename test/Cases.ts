@@ -11,13 +11,14 @@ import {
 export const simpleAccountV06Baseline: UserOpDescription = {
   walletImplementation: WalletImplementation.simpleAccount_v6,
   paymasterType: PaymasterType.noPaymaster,
-  gasPaymentStrategy: GasPaymentStrategy.accountBalance,
+  gasPaymentStrategy: GasPaymentStrategy.accountDeposit,
   creationStrategy: CreationStrategy.usePreCreatedAccount,
   userOpAction: UserOpAction.valueTransfer
 }
 
 export const simpleAccountV06WithCreation: UserOpDescription = {
   ...simpleAccountV06Baseline,
+  gasPaymentStrategy: GasPaymentStrategy.accountBalance,
   creationStrategy: CreationStrategy.useDeployerInUserOp
 }
 
@@ -27,15 +28,13 @@ export const simpleAccountV06VerifyingPaymaster: UserOpDescription = {
 }
 
 export const kernelLiteV23Baseline: UserOpDescription = {
-  walletImplementation: WalletImplementation.zerodevKernelLite_v2_3,
-  paymasterType: PaymasterType.noPaymaster,
-  gasPaymentStrategy: GasPaymentStrategy.accountBalance,
-  creationStrategy: CreationStrategy.usePreCreatedAccount,
-  userOpAction: UserOpAction.valueTransfer
+  ...simpleAccountV06Baseline,
+  walletImplementation: WalletImplementation.zerodevKernelLite_v2_3
 }
 
 export const kernelLiteV23WithCreation: UserOpDescription = {
   ...kernelLiteV23Baseline,
+  gasPaymentStrategy: GasPaymentStrategy.accountBalance,
   creationStrategy: CreationStrategy.useDeployerInUserOp
 }
 
