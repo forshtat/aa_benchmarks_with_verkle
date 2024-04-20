@@ -38,4 +38,5 @@ export interface UserOpDescription {
 export interface BundleDescription {
   name: string
   userOps: UserOpDescription[]
+  reuseAccounts?: number[]
 }

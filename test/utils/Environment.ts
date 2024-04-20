@@ -106,10 +106,20 @@ export class Environment {
     this.zerodevKernelAccountFactoryV23 = IKernelFactoryV23__factory.connect(zerodevKernelFactory, this.signer)
   }
 
-  async handleOps (descriptions: UserOpDescription[]): Promise<ContractTransactionReceipt> {
+  async handleOps (
+    descriptions: UserOpDescription[],
+    reuseAccounts?: number[]
+  ): Promise<ContractTransactionReceipt> {
     const userOps: UserOperationStruct[] = []
-    for (const description of descriptions) {
-      const userOp = await this.createUserOp(description)
+    for (const [index, description] of descriptions.entries()) {
+      let reusedSender
+      if (reuseAccounts != null) {
+        const indexToReuse = reuseAccounts[index]
+        if (indexToReuse != null && indexToReuse < userOps.length) {
+          reusedSender = await resolveAddress(userOps[indexToReuse].sender)
+        }
+      }
+      const userOp = await this.createUserOp(description, reusedSender)
       userOps.push(userOp)
     }
     const response = await this.entryPointV06.handleOps(userOps, this.beneficiary)
@@ -128,12 +138,12 @@ export class Environment {
     }
   }
 
-  async createUserOp (description: UserOpDescription): Promise<UserOperationStruct> {
-    const { sender, salt } = await this.getSender(description)
+  async createUserOp (description: UserOpDescription, reusedSender?: string): Promise<UserOperationStruct> {
+    const { sender, salt } = await this.getSender(description, reusedSender)
     const callData = await this.getCalldata(description, sender)
     const initCode = await this.getInitCode(description, salt)
     const maxFeePerGas = await this.getMaxFeePerGas()
-    const nonce = await this.getNonce(sender)
+    const nonce = await this.getNonce(sender, reusedSender)
     const userOp: UserOperationStruct = {
       callData,
       callGasLimit: 1000000,
@@ -276,10 +286,19 @@ export class Environment {
     }
   }
 
-  async getSender (description: UserOpDescription): Promise<{
+  async getSender (description: UserOpDescription, reusedSender?: string): Promise<{
     sender: string
     salt: number
   }> {
+    if (reusedSender != null) {
+      if (description.creationStrategy !== CreationStrategy.usePreCreatedAccount) {
+        throw new Error('impossible combination of "usePreCreatedAccount" and "reusedSender" test case parameters')
+      }
+      return {
+        sender: reusedSender,
+        salt: 0
+      }
+    }
     const accountOwner = await this.signer.getAddress()
 
     let sender: string
@@ -379,7 +398,16 @@ export class Environment {
     assert(nonceAfter === 1n, `failed to increment account nonce ${accountAddress}}`)
   }
 
-  async getNonce (accountAddress: string): Promise<bigint> {
-    return await this.entryPointV06.getNonce(accountAddress, 0)
+  accountReuseNonces: Record<string, bigint> = {}
+
+  async getNonce (accountAddress: string, reusedSender?: string): Promise<bigint> {
+    const currentNonce = await this.entryPointV06.getNonce(accountAddress, 0)
+    if (reusedSender != null) {
+      if (this.accountReuseNonces[reusedSender] == null) {
+        this.accountReuseNonces[reusedSender] = currentNonce
+      }
+      return ++this.accountReuseNonces[reusedSender]
+    }
+    return currentNonce
   }
 }

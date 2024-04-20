@@ -146,5 +146,25 @@ export const bundlesToRun: BundleDescription[] = [
   {
     name: 'double-zerodev-kernel-lite-with-creation-and-paymaster',
     userOps: [kernelLiteV23WithCreationAndVerifyingPaymaster, kernelLiteV23WithCreationAndVerifyingPaymaster]
+  },
+  {
+    name: 'three-simple-account-eth-transfer-(A->X B->Y A->Z)',
+    userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline],
+    reuseAccounts: [0, 1, 0]
+  },
+  {
+    name: 'four-simple-account-eth-transfer-(A->X B->Y A->Z B->W)',
+    userOps: [simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline, simpleAccountV06Baseline],
+    reuseAccounts: [0, 1, 0, 1]
+  },
+  {
+    name: 'three-zerodev-kernel-eth-transfer-(A->X B->Y A->Z)',
+    userOps: [kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline],
+    reuseAccounts: [0, 1, 0]
+  },
+  {
+    name: 'four-zerodev-kernel-eth-transfer-(A->X B->Y A->Z B->W)',
+    userOps: [kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline, kernelLiteV23Baseline],
+    reuseAccounts: [0, 1, 0, 1]
   }
 ]

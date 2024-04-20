@@ -11,7 +11,7 @@ describe('Creating Test Bundles', function () {
 
   for (const bundle of bundlesToRun) {
     it(`bundle: ${bundle.name} size: ${bundle.userOps.length}`, async function () {
-      const res = await environment.handleOps(bundle.userOps)
+      const res = await environment.handleOps(bundle.userOps, bundle.reuseAccounts)
       environment.resultsWriter.addResult(bundle.name, res.hash, bundle.userOps.length, parseInt(res.gasUsed.toString()))
     })
   }
